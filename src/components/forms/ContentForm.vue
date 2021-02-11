@@ -77,7 +77,9 @@ export default {
       const index = this.block.content.indexOf(content);
       this.block.content.splice(index, 1);
     },
-    removeBlock() {},
+    removeBlock() {
+      this.$eventBus.emit("remove_block", this.block);
+    },
     addText() {
       this.block.content.push({
         type: "text",

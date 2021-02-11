@@ -31,6 +31,7 @@ export default {
   mounted() {
     this.dom = this.$refs.dom;
     this.block.dom = this.$refs.dom;
+    console.log("mounted");
     this.$eventBus.emit("set_endpoints", this.block, this.$refs.input, [
       this.$refs.output,
     ]);

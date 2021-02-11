@@ -8,7 +8,11 @@
     @mousemove="flowchart_mousemove"
     :style="{ backgroundImage: getBackground }"
   >
-    <div class="flowchart-content" ref="flowchatContent">
+    <div
+      class="flowchart-content"
+      ref="flowchatContent"
+      :class="{ 'dragging-block': draggingBlock ? true : false }"
+    >
       <component
         :is="block.component"
         v-for="block in blocks"
@@ -29,6 +33,7 @@ import End from "./blocks/EndBlock.vue";
 import Redirect from "./blocks/RedirectBlock.vue";
 import Content from "./blocks/ContentBlock.vue";
 import UserInput from "./blocks/UserInputBlock.vue";
+import loadsh from "lodash";
 
 export default {
   name: "Flowchart",
@@ -54,29 +59,11 @@ export default {
     zoom: 1,
     flowchatContent: null,
     flowchat: null,
+    backups: [],
   }),
   watch: {
     blocks() {
-      this.$nextTick(() => {
-        for (let i = 0; i < this.blocks.length; i++) {
-          const block = this.blocks[i];
-          if (block.type === "user_input") {
-            block.redirect = block.options.map((option) => option.redirect);
-          }
-          if (block.redirect) {
-            for (let j = 0; j < block.redirect.length; j++) {
-              const next = block.redirect[j];
-              if (next) {
-                const input = this.blocks.find((b) => b.id == next);
-                this.plumbInstance.connect({
-                  source: block.output_endpoints[j],
-                  target: input.input_endpoint,
-                });
-              }
-            }
-          }
-        }
-      });
+      this.$nextTick(this.revalidadeConnections);
     },
   },
   mounted() {
@@ -106,8 +93,50 @@ export default {
     this.$eventBus.on("set_endpoints", this.set_endpoints);
     this.$eventBus.on("open_edit_form_block", this.open_edit_form_block);
     this.$eventBus.on("remove_endpoint", this.remove_endpoint);
+    this.$eventBus.on("remove_block", this.remove_block);
+
+    document.addEventListener("keyup", this.keyupHandler);
   },
   methods: {
+    revalidadeConnections() {
+      for (let i = 0; i < this.blocks.length; i++) {
+        const block = this.blocks[i];
+        if (block.type === "user_input") {
+          block.redirect = block.options.map((option) => option.redirect);
+        }
+        if (block.redirect) {
+          for (let j = 0; j < block.redirect.length; j++) {
+            const next = block.redirect[j];
+            if (next) {
+              const input = this.blocks.find((b) => b.id == next);
+              this.plumbInstance.connect({
+                source: block.output_endpoints[j],
+                target: input.input_endpoint,
+              });
+            }
+          }
+        }
+      }
+    },
+    keyupHandler(event) {
+      if (event.ctrlKey && event.code === "KeyZ") {
+        this.undoHandler();
+      }
+    },
+    undoHandler() {
+      const pop = this.backups.pop();
+      if (pop) {
+        this.plumbInstance.deleteEveryEndpoint();
+        this.plumbInstance.deleteEveryConnection();
+        this.blocks.length = 0;
+        for (let i = 0; i < pop.length; i++) {
+          this.blocks.push(pop[i]);
+        }
+      }
+    },
+    pushHandler() {
+      this.backups.push(loadsh.cloneDeep(this.blocks));
+    },
     open_edit_form_block(block) {
       this.$emit("open_edit_form_block", block);
     },
@@ -118,9 +147,27 @@ export default {
         target: block.input_endpoint,
       });
     },
+    remove_block(block) {
+      this.pushHandler();
+      const connections = this.plumbInstance.select({ target: block.input_endpoint });
+      for (let i = 0; i < connections.length; i++) {
+        const connection = connections.get(i);
+        const source = connection.source;
+        source.block.redirect[source.redirectIndex] = null;
+        if (source.block.type === "user_input") {
+          source.block.options[source.redirectIndex].redirect = null;
+        }
+        this.plumbInstance.deleteConnection(connection);
+      }
+      const index = this.blocks.findIndex((b) => b === block);
+      this.blocks.splice(index, 1);
+      for (let i = 0; i < block.output_endpoints.length; i++) {
+        const output = block.output_endpoints[i];
+        this.plumbInstance.select({ source: output }).delete();
+      }
+    },
     remove_endpoint(block, index) {
       this.plumbInstance.select({ source: block.output_endpoints[index] }).delete();
-      block.output_endpoints[index];
       block.output_endpoints.splice(index, 1);
       block.redirect.splice(index, 1);
       if (block.type === "user_input") {
@@ -367,6 +414,15 @@ export default {
     position: absolute;
     left: 0px;
     top: 0px;
+
+    &.dragging-block{
+      .jtk-connector{
+        z-index: 1;
+      }
+      .jtk-overlay{
+        z-index: 1;
+      }
+    }
 
     > .block {
       position: absolute;
