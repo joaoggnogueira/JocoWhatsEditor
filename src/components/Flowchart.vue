@@ -23,6 +23,7 @@
         :block="block"
       />
     </div>
+    <LogFlow />
   </div>
 </template>
 
@@ -34,18 +35,21 @@ import Redirect from "./blocks/RedirectBlock.vue";
 import Content from "./blocks/ContentBlock.vue";
 import UserInput from "./blocks/UserInputBlock.vue";
 import loadsh from "lodash";
+import LogFlow from "./LogFlow";
+
+import { mapGetters, mapMutations } from "vuex";
+
+const BACKUPS = [];
 
 export default {
   name: "Flowchart",
-  props: {
-    blocks: Array,
-  },
   components: {
     Begin,
     End,
     Redirect,
     Content,
     UserInput,
+    LogFlow,
   },
   data: () => ({
     dragX: 0,
@@ -59,11 +63,11 @@ export default {
     zoom: 1,
     flowchatContent: null,
     flowchat: null,
-    backups: [],
   }),
-  watch: {
-    blocks() {
-      this.$nextTick(this.revalidadeConnections);
+  computed: {
+    ...mapGetters(["blocks", "blockById", "redirects", "original_redirects"]),
+    getBackground() {
+      return `url(${require("../assets/pixel.png")})`;
     },
   },
   mounted() {
@@ -90,30 +94,52 @@ export default {
     });
 
     this.plumbInstance.bind("connection", this.on_connection);
-    this.$eventBus.on("set_endpoints", this.set_endpoints);
     this.$eventBus.on("open_edit_form_block", this.open_edit_form_block);
     this.$eventBus.on("remove_endpoint", this.remove_endpoint);
     this.$eventBus.on("remove_block", this.remove_block);
+    this.$eventBus.on("create_block_interface", this.create_block_interface);
+    this.$eventBus.on("update_endpoints", this.update_endpoints);
+    this.$eventBus.on("add_redirect", this.add_redirect);
 
     document.addEventListener("keyup", this.keyupHandler);
   },
   methods: {
-    revalidadeConnections() {
+    ...mapMutations([
+      "detachRedirect",
+      "connectRedirect",
+      "removeRedirect",
+      "addRedirect",
+    ]),
+    source_endpoints(block) {
+      const selects = this.plumbInstance.select({ target: block.input_endpoint });
+      const sources = [];
+      for (let i = 0; i < selects.length; i++) {
+        sources.push(selects.get(i).source);
+      }
+      return sources;
+    },
+    destroy_all_endpoints_outputs(block) {
+      for (let i = 0; i < block.output_endpoints.length; i++) {
+        this.plumbInstance.select({ source: block.output_endpoints[i] }).delete();
+        this.plumbInstance.unmakeSource({ source: block.output_endpoints[i] });
+      }
+    },
+    render_flowchart() {
       for (let i = 0; i < this.blocks.length; i++) {
-        const block = this.blocks[i];
-        if (block.type === "user_input") {
-          block.redirect = block.options.map((option) => option.redirect);
-        }
-        if (block.redirect) {
-          for (let j = 0; j < block.redirect.length; j++) {
-            const next = block.redirect[j];
-            if (next) {
-              const input = this.blocks.find((b) => b.id == next);
-              this.plumbInstance.connect({
-                source: block.output_endpoints[j],
-                target: input.input_endpoint,
-              });
-            }
+        this.update_endpoints(this.blocks[i]);
+      }
+
+      for (let i = 0; i < this.blocks.length; i++) {
+        this.render_connections(this.blocks[i]);
+      }
+    },
+    render_connections(source) {
+      const redirects = this.redirects(source);
+      if (redirects) {
+        for (let i = 0; i < redirects.length; i++) {
+          const redirect = redirects[i];
+          if (redirect) {
+            this.createConnection(source, redirect, i);
           }
         }
       }
@@ -123,42 +149,136 @@ export default {
         this.undoHandler();
       }
     },
-    undoHandler() {
-      const pop = this.backups.pop();
-      if (pop) {
+    backupHandler(pop) {
+      if (pop.type == "backup_context") {
         this.plumbInstance.deleteEveryEndpoint();
         this.plumbInstance.deleteEveryConnection();
         this.blocks.length = 0;
-        for (let i = 0; i < pop.length; i++) {
-          this.blocks.push(pop[i]);
+        for (let i = 0; i < pop.blocks.length; i++) {
+          this.blocks.push(pop.blocks[i]);
+        }
+      } else if (pop.type == "move_position") {
+        const block = this.blockById(pop.id);
+        block.x = pop.x;
+        block.y = pop.y;
+        this.$nextTick(this.repaintBlockConnections.bind(this, block));
+        this.$eventBus.emit("log", "revertendo posição");
+      } else if (pop.type == "connect") {
+        this.createConnection(pop.source, pop.target, pop.index);
+        this.$eventBus.emit("log", "revertendo criação de conexão");
+      } else if (pop.type == "detach") {
+        this.detachConnection(pop.source, pop.index);
+        this.$eventBus.emit("log", "revertendo remoção de conexão");
+      } else if (pop.type == "backup_block") {
+        this.blocks.push(pop.copy);
+        this.$eventBus.emit("log", "revertendo remoção de bloco");
+      } else if (pop.type == "backup_endpoint") {
+        const block = this.blockById(pop.block);
+        this.destroy_all_endpoints_outputs(block);
+        this.addRedirect(pop);
+        this.$nextTick(() => {
+          this.update_endpoints(block);
+          this.render_connections(block);
+        });
+        this.$eventBus.emit("log", "revertendo remoção de ponto de conexão");
+      } else if (pop.type == "remove_endpoint") {
+        this.remove_endpoint(pop.block, pop.index, true);
+        this.$eventBus.emit("log", "revertendo criaçãp de ponto de conexão");
+      }
+    },
+    undoHandler() {
+      const pop = BACKUPS.pop();
+      if (pop) {
+        if (Array.isArray(pop)) {
+          console.log(pop);
+          let i = 0;
+          const loop = () => {
+            this.backupHandler(pop[i]);
+            i++;
+            if (i < pop.length) {
+              this.$nextTick(loop);
+            }
+          };
+          loop();
+        } else {
+          this.backupHandler(pop);
         }
       }
     },
-    pushHandler() {
-      this.backups.push(loadsh.cloneDeep(this.blocks));
+    pushHandler(option) {
+      if (option.save_context) {
+        BACKUPS.push({ blocks: loadsh.cloneDeep(this.blocks), type: "backup_context" });
+      } else if (option.save_position) {
+        BACKUPS.push({ ...option.save_position, type: "move_position" });
+      } else if (option.save_connection) {
+        BACKUPS.push({ ...option.save_connection, type: "connect" });
+      } else if (option.delete_connection) {
+        BACKUPS.push({ ...option.delete_connection, type: "detach" });
+      } else if (option.backup_block) {
+        const copy = loadsh.cloneDeep(option.backup_block);
+        const redirects = this.redirects(copy);
+        const changes = [];
+
+        const sources = this.source_endpoints(option.backup_block);
+        for (let i = 0; i < sources.length; i++) {
+          changes.push({
+            source: sources[i].block.id,
+            target: copy.id,
+            index: sources[i].getAttribute("data-index"),
+            type: "connect",
+          });
+        }
+        for (let i = 0; i < redirects.length; i++) {
+          if (redirects[i]) {
+            changes.push({
+              source: copy.id,
+              target: redirects[i],
+              index: i,
+              type: "connect",
+            });
+            this.detachRedirect({ source: copy, index: i });
+          }
+        }
+        changes.push({ copy: copy, type: "backup_block" });
+        BACKUPS.push(changes.reverse());
+      } else if (option.backup_endpoint) {
+        BACKUPS.push({
+          block: option.backup_endpoint.block,
+          data: loadsh.cloneDeep(option.backup_endpoint.data),
+          index: option.backup_endpoint.index,
+          type: "backup_endpoint",
+        });
+      } else if (option.remove_endpoint) {
+        BACKUPS.push({
+          block: option.remove_endpoint.block,
+          index: option.remove_endpoint.index,
+          type: "remove_endpoint",
+        });
+      }
     },
     open_edit_form_block(block) {
       this.$emit("open_edit_form_block", block);
     },
-    connect_endpoints(source, target_id) {
-      const block = this.blocks.find((block) => block.id == target_id);
+    createConnection(source, target, index) {
+      source = typeof source == "string" ? this.blockById(source) : source;
+      target = typeof target == "string" ? this.blockById(target) : target;
       this.plumbInstance.connect({
-        source: source,
-        target: block.input_endpoint,
+        source: source.output_endpoints[index],
+        target: target.input_endpoint,
       });
     },
+    detachConnection(source, index) {
+      source = typeof source == "string" ? this.blockById(source) : source;
+      this.detachRedirect({ source, index });
+      this.plumbInstance.select({ source: source.output_endpoints[index] }).delete();
+    },
     remove_block(block) {
-      this.pushHandler();
+      this.pushHandler({ backup_block: block });
       const connections = this.plumbInstance.select({ target: block.input_endpoint });
       for (let i = 0; i < connections.length; i++) {
-        const connection = connections.get(i);
-        const source = connection.source;
-        source.block.redirect[source.redirectIndex] = null;
-        if (source.block.type === "user_input") {
-          source.block.options[source.redirectIndex].redirect = null;
-        }
-        this.plumbInstance.deleteConnection(connection);
+        this.detachRedirect({ source: block, index: i });
       }
+      connections.delete();
       const index = this.blocks.findIndex((b) => b === block);
       this.blocks.splice(index, 1);
       for (let i = 0; i < block.output_endpoints.length; i++) {
@@ -166,39 +286,53 @@ export default {
         this.plumbInstance.select({ source: output }).delete();
       }
     },
-    remove_endpoint(block, index) {
-      this.plumbInstance.select({ source: block.output_endpoints[index] }).delete();
-      block.output_endpoints.splice(index, 1);
-      block.redirect.splice(index, 1);
-      if (block.type === "user_input") {
-        block.options.splice(index, 1);
-      }
-
+    add_redirect(block, data) {
+      this.pushHandler({ remove_endpoint: { block: block.id, index: 0 } });
+      this.destroy_all_endpoints_outputs(block);
+      this.addRedirect({ block: block.id, data, index: 0 });
       this.$nextTick(() => {
-        for (let i = 0; i < block.output_endpoints.length; i++) {
-          block.output_endpoints[i].redirectIndex = i;
-          this.plumbInstance.revalidate(block.output_endpoints[i]);
-        }
+        this.update_endpoints(block);
+        this.render_connections(block);
       });
     },
-    on_connection(info) {
-      const block = info.source.block;
-      if (!block.redirect) {
-        block.redirect = [];
+    remove_endpoint(block, index, no_backup) {
+      block = typeof block === "string" ? this.blockById(block) : block;
+      const redirectingData = this.original_redirects(block);
+      if (!no_backup) {
+        this.pushHandler({
+          backup_endpoint: {
+            block: block.id,
+            index: index,
+            data: redirectingData[index],
+          },
+        });
       }
-      block.redirect[info.source.redirectIndex] = info.target.block.id;
-      if (block.type === "user_input") {
-        block.options[info.source.redirectIndex].redirect = info.target.block.id;
+      this.destroy_all_endpoints_outputs(block);
+      this.removeRedirect({ block, index });
+
+      this.$nextTick(() => {
+        this.update_endpoints(block);
+        this.render_connections(block);
+      });
+    },
+    on_connection(info, originalEvent) {
+      const payload = {
+        source: info.source.block,
+        target: info.target.block,
+        index: info.source.getAttribute("data-index"),
+      };
+      this.connectRedirect(payload);
+      if (originalEvent) {
+        this.pushHandler({ delete_connection: payload });
       }
     },
-    //input is DOM Elements, outputs is Map
-    set_endpoints(block, input, outputs) {
+    update_endpoints(block) {
+      const outputs = block.interface.get_output_endpoints();
       if (outputs) {
         block.output_endpoints = [];
-        outputs.forEach((output, index) => {
+        outputs.forEach((output) => {
           block.output_endpoints.push(output);
           output.block = block;
-          output.redirectIndex = index;
 
           this.plumbInstance.makeSource(output, {
             endpoint: "Blank",
@@ -219,19 +353,30 @@ export default {
           });
         });
       }
+
+      const input = block.interface.get_input_endpoints();
       if (input) {
         block.input_endpoint = input;
         input.block = block;
-
         this.plumbInstance.makeTarget(input, {
           endpoint: "Blank",
           anchor: [0, 0.5, 0, 0, 4, 0],
-          allowLoopback: false,
-          connectionsDetachable: true,
-          connectorOverlays: [
-            ["Arrow", { width: 15, length: 15, location: 1, id: "arrow" }],
-          ],
         });
+      }
+    },
+    create_block_interface(block, payload) {
+      block.interface = payload;
+      this.check_all_blocks_loaded();
+    },
+    check_all_blocks_loaded() {
+      let sum = 0;
+      for (let i = 0; i < this.blocks.length; i++) {
+        if (this.blocks[i].interface) {
+          sum++;
+        }
+      }
+      if (sum === this.blocks.length) {
+        this.render_flowchart();
       }
     },
     create_overlay_arrow(connection) {
@@ -239,12 +384,17 @@ export default {
       dom.style.backgroundImage = `url(${require("@/assets/close.svg")})`;
       dom.className = "deleteCBtn";
       dom.addEventListener("click", () => {
-        const block = connection.source.block;
-        block.redirect[connection.source.redirectIndex] = null;
-        if (block.type === "user_input") {
-          block.options[connection.source.redirectIndex].redirect = null;
-        }
-        this.plumbInstance.deleteConnection(connection);
+        this.pushHandler({
+          save_connection: {
+            source: connection.source.block.id,
+            target: connection.target.block.id,
+            index: connection.source.getAttribute("data-index"),
+          },
+        });
+        this.detachConnection(
+          connection.source.block,
+          connection.source.getAttribute("data-index")
+        );
       });
       return dom;
     },
@@ -253,6 +403,7 @@ export default {
         this.block_mouseup(evt, this.draggingBlock);
         return;
       }
+      this.pushHandler({ save_position: block });
       block.dom.classList.add("selected");
       this.dragX = parseFloat(block.dom.style.left);
       this.dragY = parseFloat(block.dom.style.top);
@@ -265,6 +416,13 @@ export default {
       if (this.draggingBlock == block) {
         this.draggingBlock.dom.classList.remove("selected");
         this.updatePosition(this.draggingBlock, this.dragX, this.dragY, true);
+
+        if (
+          Math.abs(this.draggingBlock.x - BACKUPS[BACKUPS.length - 1].x) <= 31 &&
+          Math.abs(this.draggingBlock.y - BACKUPS[BACKUPS.length - 1].y) <= 31
+        ) {
+          BACKUPS.pop();
+        }
         this.draggingBlock = false;
         this.plumbInstance.repaintEverything();
       }
@@ -294,6 +452,10 @@ export default {
       }
       block.x = x;
       block.y = y;
+      this.repaintBlockConnections(block);
+    },
+
+    repaintBlockConnections(block) {
       if (block.output_endpoints) {
         for (let i = 0; i < block.output_endpoints.length; i++) {
           this.plumbInstance.revalidate(block.output_endpoints[i]);
@@ -366,11 +528,6 @@ export default {
       }
     },
   },
-  computed: {
-    getBackground() {
-      return `url(${require("../assets/pixel.png")})`;
-    },
-  },
 };
 </script>
 
@@ -415,11 +572,11 @@ export default {
     left: 0px;
     top: 0px;
 
-    &.dragging-block{
-      .jtk-connector{
+    &.dragging-block {
+      .jtk-connector {
         z-index: 1;
       }
-      .jtk-overlay{
+      .jtk-overlay {
         z-index: 1;
       }
     }

@@ -1,11 +1,11 @@
 <template>
   <div class="docfield">
     <div class="icon">
-        <font-awesome-icon icon="file-alt" />
+        <font-awesome-icon icon="video" />
     </div>
     <div class="desc">
-      <div class="title">{{ content.filename| str_limit(30) }}</div>
-      <div class="caption">{{ content.caption | str_limit(50)  }}</div>
+      <div class="title">{{ content.caption | str_limit(30) }}</div>
+      <div class="caption">{{ content.link | str_limit(50)  }}</div>
     </div>
   </div>
 </template>
@@ -33,12 +33,13 @@ export default {
     background-size: 24px 24px;
     background-repeat: no-repeat;
     line-height: 58px;
-    .fa-file-alt{
+    .fa-video{
         color: white;
         font-size: 24px;
     }
   }
   > .desc {
+    word-break: break-all;
     text-align: left;
     display: flex;
     flex-direction: column;

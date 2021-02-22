@@ -19,7 +19,7 @@
           entrada
         </div>
         <div class="output field">
-          <div class="dot endpoint-source" ref="output" @mousedown.stop></div>
+          <div class="dot endpoint-source" ref="output" data-index="0" @mousedown.stop></div>
           saída
         </div>
       </div>
@@ -28,23 +28,22 @@
   </div>
 </template>
 <script>
-import ImageField from "./content/ImageField.vue";
-import TextField from "./content/TextField.vue";
-import DocField from "./content/DocField.vue";
-import VideoField from "./content/VideoField.vue";
-import AudioField from "./content/AudioField.vue";
-
+import ImageBlockPrewie from "./blocks_prewie/ImageBlockPrewie.vue";
+import TextBlockPrewie from "./blocks_prewie/TextBlockPrewie.vue";
+import DocBlockPrewie from "./blocks_prewie/DocBlockPrewie.vue";
+import VideoBlockPrewie from "./blocks_prewie/VideoBlockPrewie.vue";
+import AudioBlockPrewie from "./blocks_prewie/AudioBlockPrewie.vue";
 
 export default {
   data: () => ({
     dom: null,
   }),
   components: {
-    ImageField,
-    TextField,
-    DocField,
-    VideoField,
-    AudioField
+    ImageBlockPrewie,
+    TextBlockPrewie,
+    DocBlockPrewie,
+    VideoBlockPrewie,
+    AudioBlockPrewie,
   },
   props: {
     block: Object,
@@ -62,11 +61,11 @@ export default {
     processContent() {
       this.block.content.forEach((d) => {
         d.component = {
-          image: "ImageField",
-          text: "TextField",
-          document: "DocField",
-          audio: "AudioField",
-          video: "VideoField",
+          image: "ImageBlockPrewie",
+          text: "TextBlockPrewie",
+          document: "DocBlockPrewie",
+          audio: "AudioBlockPrewie",
+          video: "VideoBlockPrewie",
         }[d.type];
         d.cid = d.cid || this.$uuid.v1();
       });
@@ -75,10 +74,10 @@ export default {
   mounted() {
     this.dom = this.$refs.dom;
     this.block.dom = this.$refs.dom;
-    console.log("mounted");
-    this.$eventBus.emit("set_endpoints", this.block, this.$refs.input, [
-      this.$refs.output,
-    ]);
+    this.$eventBus.emit("create_block_interface", this.block, {
+      get_input_endpoints: () => this.$refs.input,
+      get_output_endpoints: () => [this.$refs.output],
+    });
   },
 };
 </script>

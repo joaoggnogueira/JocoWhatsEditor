@@ -49,11 +49,11 @@
   </div>
 </template>
 <script>
-import AudioForm from "./content/AudioForm.vue";
-import DocForm from "./content/DocForm.vue";
-import ImageForm from "./content/ImageForm.vue";
-import TextForm from "./content/TextForm.vue";
-import VideoForm from "./content/VideoForm.vue";
+import AudioForm from "./forms_fields/AudioForm.vue";
+import DocForm from "./forms_fields/DocForm.vue";
+import ImageForm from "./forms_fields/ImageForm.vue";
+import TextForm from "./forms_fields/TextForm.vue";
+import VideoForm from "./forms_fields/VideoForm.vue";
 import EventAnalyticsForm from "./EventAnalyticsForm.vue";
 import MultipleTextEditor from "@/components/MultipleTextEditor.vue";
 import draggable from "vuedraggable";
@@ -79,6 +79,7 @@ export default {
     },
     removeBlock() {
       this.$eventBus.emit("remove_block", this.block);
+      this.$emit('onClose');
     },
     addText() {
       this.block.content.push({

@@ -33,10 +33,7 @@ export default {
     prev() {
       if (this.currentIndex !== 0) this.currentIndex--;
     },
-  },
-  mounted() {
-    console.log("textfield mounted");
-  },
+  }
 };
 </script>
 <style lang="scss" scoped>

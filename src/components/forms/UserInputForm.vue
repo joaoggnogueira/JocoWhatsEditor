@@ -21,7 +21,7 @@
   </div>
 </template>
 <script>
-import OptionInputForm from "./content/OptionInputForm.vue";
+import OptionInputForm from "./forms_fields/OptionInputForm.vue";
 
 export default {
   props: {
@@ -31,10 +31,14 @@ export default {
     OptionInputForm,
   },
   methods: {
-    removeBlock() {},
+    removeBlock() {
+      this.$eventBus.emit("remove_block", this.block);
+      this.$emit("onClose");
+    },
     addIntent() {
       const name = "Opção " + parseInt(Math.random() * 10000);
-      this.block.options.push({
+
+      this.$eventBus.emit("add_redirect", this.block, {
         name: name,
         synonyms: [name],
         redirect: null,

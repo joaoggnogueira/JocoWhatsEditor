@@ -32,7 +32,10 @@ export default {
   mounted() {
     this.dom = this.$refs.dom;
     this.block.dom = this.$refs.dom;
-    this.$eventBus.emit("set_endpoints", this.block, this.$refs.input, null);
+    this.$eventBus.emit("create_block_interface", this.block, {
+      get_input_endpoints: () => this.$refs.input,
+      get_output_endpoints: () => null,
+    });
   },
 };
 </script>
