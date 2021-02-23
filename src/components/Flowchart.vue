@@ -356,6 +356,9 @@ export default {
 
       const input = block.interface.get_input_endpoints();
       if (input) {
+        if (block.input_endpoint) {
+          this.plumbInstance.unmakeSource({ source: block.input_endpoint });
+        }
         block.input_endpoint = input;
         input.block = block;
         this.plumbInstance.makeTarget(input, {
