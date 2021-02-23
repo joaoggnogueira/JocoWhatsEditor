@@ -1,30 +1,16 @@
 <template>
   <div class="flowchart-form">
-    <component :is="block.form" :block="block" @onClose="onClose" />
+    <component :is="'c_' + block.type" :block="block" @onClose="onClose" />
   </div>
 </template>
 <script>
 import ContentForm from "./forms/ContentForm.vue";
 import UserInputForm from "./forms/UserInputForm.vue";
+import RedirectForm from "./forms/RedirectForm.vue";
 
 export default {
   props: {
     block: Object,
-  },
-  mounted() {
-    this.block.form = { message: "ContentForm", user_input: "UserInputForm" }[
-      this.block.type
-    ];
-    this.$forceUpdate();
-  },
-  watch: {
-    block: {
-      handler() {
-        this.block.form = { message: "ContentForm", user_input: "UserInputForm" }[
-          this.block.type
-        ];
-      },
-    },
   },
   methods: {
     onClose() {
@@ -32,8 +18,9 @@ export default {
     },
   },
   components: {
-    ContentForm,
-    UserInputForm,
+    c_message: ContentForm,
+    c_user_input: UserInputForm,
+    c_redirect: RedirectForm,
   },
 };
 </script>

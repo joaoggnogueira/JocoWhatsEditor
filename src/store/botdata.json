@@ -2,26 +2,31 @@
     "blocks": [
         {
             "id": "01",
-            "component": "Begin",
+            "type": "begin",
             "x": 512,
             "y": 64
         },
         {
             "id": "02",
-            "component": "End",
+            "type": "end",
             "x": 512,
             "y": 264
         },
         {
             "id": "03",
-            "component": "Redirect",
+            "type": "redirect",
             "x": 64,
-            "y": 64
+            "y": 64,
+            "analytics": {
+                "enabled": false,
+                "category": "",
+                "action": "",
+                "label": ""
+            }
         },
         {
             "id": "04",
             "type": "message",
-            "component": "Content",
             "content": [
                 {
                     "type": "text",
@@ -50,7 +55,7 @@
                 "Fallback B"
             ],
             "analytics": {
-                "enabled": true,
+                "enabled": false,
                 "category": "",
                 "action": "",
                 "label": ""
@@ -64,7 +69,6 @@
         {
             "id": "05",
             "type": "message",
-            "component": "Content",
             "content": [
                 {
                     "type": "audio",
@@ -83,7 +87,7 @@
                 "Fallback B"
             ],
             "analytics": {
-                "enabled": true,
+                "enabled": false,
                 "category": "",
                 "action": "",
                 "label": ""
@@ -95,7 +99,6 @@
         {
             "id": "06",
             "type": "user_input",
-            "component": "UserInput",
             "options": [
                 {
                     "name": "Opção 1",

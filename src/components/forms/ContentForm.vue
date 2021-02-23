@@ -31,10 +31,10 @@
         @end="drag = false"
       >
         <component
-          :is="c.form"
+          :is="'c_' + c.type"
           :content="c"
-          v-for="c in block.content"
-          :key="c.fid"
+          v-for="(c,index) in block.content"
+          :key="index"
           @remove="removeContent"
         ></component>
       </draggable>
@@ -63,11 +63,11 @@ export default {
     block: Object,
   },
   components: {
-    AudioForm,
-    DocForm,
-    ImageForm,
-    TextForm,
-    VideoForm,
+    c_audio: AudioForm,
+    c_document: DocForm,
+    c_image: ImageForm,
+    c_text: TextForm,
+    c_video: VideoForm,
     MultipleTextEditor,
     draggable,
     EventAnalyticsForm,
@@ -79,14 +79,13 @@ export default {
     },
     removeBlock() {
       this.$eventBus.emit("remove_block", this.block);
-      this.$emit('onClose');
+      this.$emit("onClose");
     },
     addText() {
       this.block.content.push({
         type: "text",
         text: ["Variação A", "Variação B", "Variação C"],
       });
-      this.processContent();
     },
     addImage() {
       this.block.content.push({
@@ -95,7 +94,6 @@ export default {
           "http://s2.glbimg.com/98XbAqt_X-viIassY_-xvO6qX4k=/290x217/s2.glbimg.com/5leI8ibWeyODP8jDmPhyNQbadzM=/300x225/s.glbimg.com/jo/g1/f/original/2013/05/13/cafefruta.jpg",
         caption: "Loren Ipsum",
       });
-      this.processContent();
     },
     addDoc() {
       this.block.content.push({
@@ -106,39 +104,20 @@ export default {
         caption: "consectetur adipiscing elit",
         filename: "Guaraná_NOVA LITERATURA.pdf",
       });
-      this.processContent();
     },
     addAudio() {
       this.block.content.push({
         // type: "audio",
         // text: ["Variação A", "Variação B", "Variação C"],
       });
-      this.processContent();
     },
     addVideo() {
       this.block.content.push({
         // type: "video",
         // text: ["Variação A", "Variação B", "Variação C"],
       });
-      this.processContent();
     },
-    processContent() {
-      this.block.content.forEach((content) => {
-        content.form = {
-          document: "DocForm",
-          audio: "AudioForm",
-          image: "ImageForm",
-          text: "TextForm",
-          video: "VideoForm",
-        }[content.type];
-        content.fid = this.$uuid.v1();
-      });
-    },
-  },
-  mounted() {
-    this.processContent();
-    this.$forceUpdate();
-  },
+  }
 };
 </script>
 <style lang="scss">

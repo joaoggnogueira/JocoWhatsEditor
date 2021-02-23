@@ -14,7 +14,7 @@
       :class="{ 'dragging-block': draggingBlock ? true : false }"
     >
       <component
-        :is="block.component"
+        :is="'c_'+block.type"
         v-for="block in blocks"
         :key="block.id"
         @mousedown="block_mousedown"
@@ -44,11 +44,11 @@ const BACKUPS = [];
 export default {
   name: "Flowchart",
   components: {
-    Begin,
-    End,
-    Redirect,
-    Content,
-    UserInput,
+    c_begin: Begin,
+    c_end: End,
+    c_redirect: Redirect,
+    c_message: Content,
+    c_user_input: UserInput,
     LogFlow,
   },
   data: () => ({

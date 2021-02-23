@@ -19,11 +19,21 @@
           entrada
         </div>
         <div class="output field">
-          <div class="dot endpoint-source" ref="output" data-index="0" @mousedown.stop></div>
+          <div
+            class="dot endpoint-source"
+            ref="output"
+            data-index="0"
+            @mousedown.stop
+          ></div>
           saída
         </div>
       </div>
-      <component :is="c.component" v-for="c in block.content" :key="c.cid" :content="c" />
+      <component
+        :is="'c_' + c.type"
+        v-for="(c, index) in block.content"
+        :key="index"
+        :content="c"
+      />
     </div>
   </div>
 </template>
@@ -39,36 +49,18 @@ export default {
     dom: null,
   }),
   components: {
-    ImageBlockPrewie,
-    TextBlockPrewie,
-    DocBlockPrewie,
-    VideoBlockPrewie,
-    AudioBlockPrewie,
+    c_image: ImageBlockPrewie,
+    c_text: TextBlockPrewie,
+    c_document: DocBlockPrewie,
+    c_video: VideoBlockPrewie,
+    c_audio: AudioBlockPrewie,
   },
   props: {
     block: Object,
   },
-  beforeMount() {
-    this.processContent();
-  },
-  beforeUpdate() {
-    this.processContent();
-  },
   methods: {
     edit() {
       this.$eventBus.emit("open_edit_form_block", this.block);
-    },
-    processContent() {
-      this.block.content.forEach((d) => {
-        d.component = {
-          image: "ImageBlockPrewie",
-          text: "TextBlockPrewie",
-          document: "DocBlockPrewie",
-          audio: "AudioBlockPrewie",
-          video: "VideoBlockPrewie",
-        }[d.type];
-        d.cid = d.cid || this.$uuid.v1();
-      });
     },
   },
   mounted() {

@@ -10,7 +10,7 @@
   >
     <div class="header">
       Fluxo
-      <font-awesome-icon icon="pen" />
+      <font-awesome-icon icon="pen" @click="edit" />
     </div>
     <div class="content">
       <div class="row-between">
@@ -19,7 +19,12 @@
           entrada
         </div>
         <div class="output field">
-          <div class="dot endpoint-source" ref="output" data-index="0" @mousedown.stop></div>
+          <div
+            class="dot endpoint-source"
+            ref="output"
+            data-index="0"
+            @mousedown.stop
+          ></div>
           saída
         </div>
       </div>
@@ -33,6 +38,11 @@ export default {
   }),
   props: {
     block: Object,
+  },
+  methods: {
+    edit() {
+      this.$eventBus.emit("open_edit_form_block", this.block);
+    },
   },
   mounted() {
     this.dom = this.$refs.dom;
