@@ -7,6 +7,10 @@ export default {
     },
     readyToFlowchart() {
     },
+    pushBlock(state, payload) {
+        state._blocks.push(payload);
+        return payload;
+    },
     detachRedirect(state, payload) {
         if (payload.source.type === "user_input") {
             payload.source.options[payload.index].redirect = null;

@@ -7,6 +7,7 @@
 import ContentForm from "./forms/ContentForm.vue";
 import UserInputForm from "./forms/UserInputForm.vue";
 import RedirectForm from "./forms/RedirectForm.vue";
+import RequestForm from "./forms/RequestForm.vue";
 
 export default {
   props: {
@@ -21,6 +22,7 @@ export default {
     c_message: ContentForm,
     c_user_input: UserInputForm,
     c_redirect: RedirectForm,
+    c_request: RequestForm
   },
 };
 </script>

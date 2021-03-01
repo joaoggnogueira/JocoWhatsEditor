@@ -14,7 +14,7 @@
       :class="{ 'dragging-block': draggingBlock ? true : false }"
     >
       <component
-        :is="'c_'+block.type"
+        :is="'c_' + block.type"
         v-for="block in blocks"
         :key="block.id"
         @mousedown="block_mousedown"
@@ -23,6 +23,7 @@
         :block="block"
       />
     </div>
+    <FlowchartControl @addBlock="addBlock" />
     <LogFlow />
   </div>
 </template>
@@ -34,8 +35,10 @@ import End from "./blocks/EndBlock.vue";
 import Redirect from "./blocks/RedirectBlock.vue";
 import Content from "./blocks/ContentBlock.vue";
 import UserInput from "./blocks/UserInputBlock.vue";
+import Request from "./blocks/RequestBlock.vue";
 import loadsh from "lodash";
 import LogFlow from "./LogFlow";
+import FlowchartControl from "./FlowchartControl.vue";
 
 import { mapGetters, mapMutations } from "vuex";
 
@@ -49,7 +52,9 @@ export default {
     c_redirect: Redirect,
     c_message: Content,
     c_user_input: UserInput,
+    c_request: Request,
     LogFlow,
+    FlowchartControl,
   },
   data: () => ({
     dragX: 0,
@@ -63,6 +68,7 @@ export default {
     zoom: 1,
     flowchatContent: null,
     flowchat: null,
+    already_rendered: null,
   }),
   computed: {
     ...mapGetters(["blocks", "blockById", "redirects", "original_redirects"]),
@@ -109,7 +115,42 @@ export default {
       "connectRedirect",
       "removeRedirect",
       "addRedirect",
+      "pushBlock",
     ]),
+    addBlock(type) {
+      const id = this.$uuid.v1();
+      if (type === "request") {
+        this.pushBlock({
+          id,
+          type: "request",
+          x: 64,
+          y: 64,
+          analytics: {
+            enabled: false,
+            category: "",
+            action: "",
+            label: "",
+          },
+        });
+      } else if (type === "message") {
+        this.pushBlock({
+          id,
+          type: "message",
+          content: [],
+          fallback: [],
+          analytics: {
+            enabled: false,
+            category: "",
+            action: "",
+            label: "",
+          },
+          x: 512,
+          y: 512,
+          redirect: [],
+        });
+      }
+      this.pushHandler({ delete_block: id });
+    },
     source_endpoints(block) {
       const selects = this.plumbInstance.select({ target: block.input_endpoint });
       const sources = [];
@@ -183,7 +224,11 @@ export default {
         this.$eventBus.emit("log", "revertendo remoção de ponto de conexão");
       } else if (pop.type == "remove_endpoint") {
         this.remove_endpoint(pop.block, pop.index, true);
-        this.$eventBus.emit("log", "revertendo criaçãp de ponto de conexão");
+        this.$eventBus.emit("log", "revertendo criação de ponto de conexão");
+      } else if (pop.type === "delete_block") {
+        const block = this.blockById(pop.block);
+        this.remove_block(block, true);
+        this.$eventBus.emit("log", "revertendo criação de bloco");
       }
     },
     undoHandler() {
@@ -241,6 +286,8 @@ export default {
         }
         changes.push({ copy: copy, type: "backup_block" });
         BACKUPS.push(changes.reverse());
+      } else if (option.delete_block) {
+        BACKUPS.push({ block: option.delete_block, type: "delete_block" });
       } else if (option.backup_endpoint) {
         BACKUPS.push({
           block: option.backup_endpoint.block,
@@ -272,8 +319,8 @@ export default {
       this.detachRedirect({ source, index });
       this.plumbInstance.select({ source: source.output_endpoints[index] }).delete();
     },
-    remove_block(block) {
-      this.pushHandler({ backup_block: block });
+    remove_block(block, preventBackup) {
+      if (!preventBackup) this.pushHandler({ backup_block: block });
       const connections = this.plumbInstance.select({ target: block.input_endpoint });
       for (let i = 0; i < connections.length; i++) {
         this.detachRedirect({ source: block, index: i });
@@ -371,6 +418,10 @@ export default {
       block.interface = payload;
       this.check_all_blocks_loaded();
     },
+    destroy_all_connections() {
+      this.plumbInstance.deleteEveryConnection();
+      this.plumbInstance.deleteEveryEndpoint();
+    },
     check_all_blocks_loaded() {
       let sum = 0;
       for (let i = 0; i < this.blocks.length; i++) {
@@ -379,7 +430,12 @@ export default {
         }
       }
       if (sum === this.blocks.length) {
+        console.log("rendering all blocks again");
+        if (this.already_rendered) {
+          this.destroy_all_connections();
+        }
         this.render_flowchart();
+        this.already_rendered = true;
       }
     },
     create_overlay_arrow(connection) {
