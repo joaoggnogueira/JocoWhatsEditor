@@ -24,20 +24,25 @@
           <font-awesome-icon icon="video" />
         </div>
       </div>
-      <draggable
-        v-model="block.content"
-        group="contents"
-        @start="drag = true"
-        @end="drag = false"
-      >
-        <component
-          :is="'c_' + c.type"
-          :content="c"
-          v-for="(c,index) in block.content"
-          :key="index"
-          @remove="removeContent"
-        ></component>
-      </draggable>
+      <template v-if="block.content.length">
+        <draggable
+          v-model="block.content"
+          group="contents"
+          @start="drag = true"
+          @end="drag = false"
+        >
+          <component
+            :is="'c_' + c.type"
+            :content="c"
+            v-for="(c, index) in block.content"
+            :key="index"
+            @remove="removeContent"
+          ></component>
+        </draggable>
+      </template>
+      <template v-else>
+        <div class="subheader-empty">Sem mensagem</div>
+      </template>
       <div class="label">Fallbacks</div>
       <div class="form-fallback">
         <MultipleTextEditor :texts="block.fallback" />
@@ -117,7 +122,7 @@ export default {
         // text: ["Variação A", "Variação B", "Variação C"],
       });
     },
-  }
+  },
 };
 </script>
 <style lang="scss">

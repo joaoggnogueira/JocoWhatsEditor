@@ -616,6 +616,16 @@ export default {
   cursor: pointer;
 }
 
+.subheader-empty{
+  text-align: center;
+  height: 30px;
+  line-height: 30px;
+  background: #f6f6f6;
+  margin-top: 10px;
+  margin-bottom: 10px;
+  font-style: italic;
+}
+
 #flowchart {
   position: absolute;
   left: 0px;

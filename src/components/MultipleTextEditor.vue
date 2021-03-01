@@ -1,15 +1,15 @@
 <template>
   <div class="multiple-text-editor">
     <div class="row-center">
-      <div class="btn-bullet" @click="remove">
-        <font-awesome-icon :class="{ disabled: !hasRem }" icon="trash" />
+      <div class="btn-bullet" @click="remove" :class="{ disabled: !hasRem || isEmpty }" >
+        <font-awesome-icon icon="trash" />
       </div>
 
-      <div class="btn-bullet" :class="{ disabled: !hasPrev }" @click="prev">
+      <div class="btn-bullet" :class="{ disabled: !hasPrev || isEmpty }" @click="prev">
         <font-awesome-icon icon="chevron-left" />
       </div>
       {{ currentIndex + 1 }} de {{ texts.length }}
-      <div class="btn-bullet" :class="{ disabled: !hasNext }" @click="next">
+      <div class="btn-bullet" :class="{ disabled: !hasNext || isEmpty }" @click="next">
         <font-awesome-icon icon="chevron-right" />
       </div>
 
@@ -17,7 +17,12 @@
         <font-awesome-icon icon="plus" />
       </div>
     </div>
-    <textarea v-model="texts[currentIndex]"></textarea>
+    <template v-if="texts.length">
+      <textarea v-model="texts[currentIndex]"></textarea>
+    </template>
+    <template v-else>
+      <div class="subheader-empty">Sem mensagem</div>
+    </template>
   </div>
 </template>
 <script>
@@ -26,8 +31,13 @@ export default {
     texts: Array,
   },
   data: () => ({
-    currentIndex: 0,
+    currentIndex: -1,
   }),
+  mounted() {
+    if (this.texts.length) {
+      this.currentIndex = 0;
+    }
+  },
   computed: {
     hasPrev() {
       return this.currentIndex !== 0;
@@ -38,22 +48,34 @@ export default {
     hasRem() {
       return this.texts.length > 1;
     },
+    isEmpty() {
+      return this.texts.length == 0;
+    },
   },
   methods: {
     add() {
       this.texts.push("");
+      if (this.currentIndex == -1) {
+        this.currentIndex = 0;
+      }
     },
     remove() {
-      this.texts.splice(this.currentIndex, 1);
-      if (this.currentIndex >= this.texts.length) {
-        this.currentIndex = this.texts.length - 1;
+      if (this.texts.length !== 0) {
+        this.texts.splice(this.currentIndex, 1);
+        if (this.currentIndex >= this.texts.length) {
+          this.currentIndex = this.texts.length - 1;
+        }
       }
     },
     next() {
-      if (this.currentIndex < this.texts.length - 1) this.currentIndex++;
+      if (this.texts.length !== 0) {
+        if (this.currentIndex < this.texts.length - 1) this.currentIndex++;
+      }
     },
     prev() {
-      if (this.currentIndex !== 0) this.currentIndex--;
+      if (this.texts.length !== 0) {
+        if (this.currentIndex !== 0) this.currentIndex--;
+      }
     },
   },
 };
@@ -67,9 +89,9 @@ textarea {
   font-family: sans-serif;
   resize: vertical;
 }
-.multiple-text-editor{
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
+.multiple-text-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
 }
 </style>
