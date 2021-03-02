@@ -1,17 +1,33 @@
 <template>
   <div class="flowchart-control">
-    <div class="flowchart-control-btn" @click="$emit('addBlock', 'message')">
+    <div class="btn-control" @click="salvar">Salvar</div>
+    <div class="btn-control" @click="$emit('resetJsPlumb')">Resetar JsPlumb</div>
+    <div class="label">Adicionar</div>
+    <div class="btn-control" @click="$emit('addBlock', 'message')">
       <font-awesome-icon icon="comment-dots" size="lg" />
       <div class="label">Interação</div>
     </div>
-    <div class="flowchart-control-btn" @click="$emit('addBlock', 'request')">
+    <div class="btn-control" @click="$emit('addBlock', 'user_input')">
+      <font-awesome-icon icon="directions" size="lg" />
+      <div class="label">User Input</div>
+    </div>
+    <div class="btn-control" @click="$emit('addBlock', 'request')">
       <font-awesome-icon icon="server" size="lg" />
       <div class="label">Call a Webhook</div>
     </div>
   </div>
 </template>
 <script>
-export default {};
+import { mapMutations } from "vuex";
+
+export default {
+  methods: {
+    ...mapMutations(["backup"]),
+    salvar() {
+      this.backup();
+    },
+  },
+};
 </script>
 <style lang="scss" scoped>
 .flowchart-control {
@@ -22,26 +38,33 @@ export default {};
   padding: 8px;
   background: white;
   border-radius: 15px;
-  z-index: 999;
-  .flowchart-control-btn {
-    background: white;
-    width: 50px;
-    height: 50px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  > .btn-control {
     padding: 8px;
     margin: 4px;
-    border-radius: 8px;
+    background: #eee;
+    color: #111;
+    min-height: 20px;
+    white-space: pre-wrap;
+    border-radius: 4px;
+    line-height: 20px;
+    max-width: none;
     cursor: pointer;
+    font-size: 12px;
     display: flex;
     flex-direction: column;
-    align-items: center;
     justify-content: center;
-    &:hover {
-      background: rgb(102, 194, 102);
+    align-items: center;
+    &:hover{
+      background: #ddd;
     }
-    .label {
-      margin-top: 10px;
-      font-size: 12px;
-    }
+  }
+  > .label{
+    margin-top: 14px;
+    font-size: 12px;
   }
 }
 </style>

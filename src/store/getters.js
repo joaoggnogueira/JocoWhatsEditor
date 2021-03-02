@@ -10,6 +10,9 @@ export default {
             return state._blocks.find((b) => id == b.id);
         }
     },
+    coordinates(state) {
+        return state._coordinates;
+    },
     original_redirects() {
         return (block) => {
             if (block.type === "user_input") {
@@ -29,7 +32,7 @@ export default {
             }
         }
     },
-    parsedBlocks(state){
+    parsedBlocks(state) {
         const blocks = loadsh.cloneDeep(state._blocks);
         blocks.forEach(block => {
             delete block.interface;

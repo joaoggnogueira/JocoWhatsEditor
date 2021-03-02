@@ -1,4 +1,9 @@
 {
+    "coordinates": {
+        "translateX": 0,
+        "translateY": 0,
+        "zoom": 1
+    },
     "blocks": [
         {
             "id": "01",
@@ -50,10 +55,6 @@
                     "filename": "Guaraná_NOVA LITERATURA.pdf"
                 }
             ],
-            "fallback": [
-                "Fallback A",
-                "Fallback B"
-            ],
             "analytics": {
                 "enabled": false,
                 "category": "",
@@ -81,10 +82,6 @@
                     "link": "https://www.w3schools.com/html/mov_bbb.mp4",
                     "caption": "texto"
                 }
-            ],
-            "fallback": [
-                "Fallback A",
-                "Fallback B"
             ],
             "analytics": {
                 "enabled": false,
@@ -131,6 +128,16 @@
                     "redirect": "03"
                 }
             ],
+            "fallback": [
+                "Fallback A",
+                "Fallback B"
+            ],
+            "analytics": {
+                "enabled": false,
+                "category": "",
+                "action": "",
+                "label": ""
+            },
             "x": 864,
             "y": 388
         }

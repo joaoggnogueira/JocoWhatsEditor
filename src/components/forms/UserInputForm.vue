@@ -10,18 +10,31 @@
       <div class="btn-add-content" @click="addIntent">
         <font-awesome-icon icon="plus" /> Nova Intenção
       </div>
-      <OptionInputForm
-        v-for="option in block.options"
-        :key="option.name"
-        :option="option"
-        @remove="remove"
-        :locked="false"
-      />
+      <template v-if="block.options.length">
+        <OptionInputForm
+          v-for="option in block.options"
+          :key="option.name"
+          :option="option"
+          @remove="remove"
+          :locked="false"
+        />
+      </template>
+      <template v-else>
+        <div class="subheader-empty">Sem tratamento de intenção</div>
+      </template>
+      <div class="form-fallback">
+        <MultipleTextEditor :texts="block.fallback" />
+      </div>
+      <div class="form-fallback">
+        <EventAnalyticsForm :analytics="block.analytics" />
+      </div>
     </div>
   </div>
 </template>
 <script>
 import OptionInputForm from "./forms_fields/OptionInputForm.vue";
+import MultipleTextEditor from "@/components/MultipleTextEditor.vue";
+import EventAnalyticsForm from "./EventAnalyticsForm.vue";
 
 export default {
   props: {
@@ -29,6 +42,8 @@ export default {
   },
   components: {
     OptionInputForm,
+    MultipleTextEditor,
+    EventAnalyticsForm
   },
   methods: {
     removeBlock() {

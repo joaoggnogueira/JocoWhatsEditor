@@ -2,10 +2,23 @@ import getters from "./getters";
 
 export default {
     load(state) {
-        const data = require("./botdata.json");
+        const backup = localStorage.getItem('storedData', getters.parsedBlocks(state));
+        const data = (backup ? JSON.parse(backup) : require("./botdata.json"));
         state._blocks = data.blocks;
+        state._coordinates = data.coordinates || { translateX: 0, translateY: 0, zoom: 1 };
     },
     readyToFlowchart() {
+    },
+    backup(state) {
+        try {
+            localStorage.setItem('storedData', JSON.stringify({
+                blocks: getters.parsedBlocks(state),
+                coordinates: getters.coordinates(state)
+            }));
+            window.alert("Salvo");
+        } catch (e) {
+            console.error(e);
+        }
     },
     pushBlock(state, payload) {
         state._blocks.push(payload);

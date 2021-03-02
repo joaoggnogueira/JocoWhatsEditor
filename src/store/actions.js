@@ -6,5 +6,5 @@ export default {
             context.commit("readyToFlowchart");
             res(true);
         });
-    }
+    },
 }

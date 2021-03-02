@@ -43,10 +43,7 @@
       <template v-else>
         <div class="subheader-empty">Sem mensagem</div>
       </template>
-      <div class="label">Fallbacks</div>
-      <div class="form-fallback">
-        <MultipleTextEditor :texts="block.fallback" />
-      </div>
+      <div class="label">Analytics</div>
       <div class="form-fallback">
         <EventAnalyticsForm :analytics="block.analytics" />
       </div>
@@ -112,14 +109,15 @@ export default {
     },
     addAudio() {
       this.block.content.push({
-        // type: "audio",
-        // text: ["Variação A", "Variação B", "Variação C"],
+        type: "audio",
+        link: "",
       });
     },
     addVideo() {
       this.block.content.push({
-        // type: "video",
-        // text: ["Variação A", "Variação B", "Variação C"],
+        type: "video",
+        link: "",
+        caption: ""
       });
     },
   },

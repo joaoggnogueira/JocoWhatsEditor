@@ -7,12 +7,9 @@
     @mouseup="flowchart_mouseup"
     @mousemove="flowchart_mousemove"
     :style="{ backgroundImage: getBackground }"
+    :class="{ 'dragging-block': draggingBlock ? true : false }"
   >
-    <div
-      class="flowchart-content"
-      ref="flowchatContent"
-      :class="{ 'dragging-block': draggingBlock ? true : false }"
-    >
+    <div class="flowchart-content" ref="flowchatContent">
       <component
         :is="'c_' + block.type"
         v-for="block in blocks"
@@ -23,7 +20,7 @@
         :block="block"
       />
     </div>
-    <FlowchartControl @addBlock="addBlock" />
+    <FlowchartControl @addBlock="addBlock" @resetJsPlumb="reset_jsPlumb" />
     <LogFlow />
   </div>
 </template>
@@ -61,17 +58,20 @@ export default {
     dragY: 0,
     lastDragX: 0,
     lastDragY: 0,
-    translateX: 0,
-    translateY: 0,
     dragging: false,
     draggingBlock: false,
-    zoom: 1,
     flowchatContent: null,
     flowchat: null,
     already_rendered: null,
   }),
   computed: {
-    ...mapGetters(["blocks", "blockById", "redirects", "original_redirects"]),
+    ...mapGetters([
+      "blocks",
+      "blockById",
+      "redirects",
+      "original_redirects",
+      "coordinates",
+    ]),
     getBackground() {
       return `url(${require("../assets/pixel.png")})`;
     },
@@ -119,24 +119,45 @@ export default {
     ]),
     addBlock(type) {
       const id = this.$uuid.v1();
+      const x = -1 * this.coordinates.translateX + 50 / this.coordinates.zoom;
+      const y = -1 * this.coordinates.translateY + 50 / this.coordinates.zoom;
+
+      let block = false;
       if (type === "request") {
-        this.pushBlock({
+        block = {
           id,
+          x,
+          y,
           type: "request",
-          x: 64,
-          y: 64,
           analytics: {
             enabled: false,
             category: "",
             action: "",
             label: "",
           },
-        });
+        };
       } else if (type === "message") {
-        this.pushBlock({
+        block = {
           id,
+          x,
+          y,
           type: "message",
           content: [],
+          analytics: {
+            enabled: false,
+            category: "",
+            action: "",
+            label: "",
+          },
+          redirect: [],
+        };
+      } else if (type === "user_input") {
+        block = {
+          id,
+          x,
+          y,
+          type: "user_input",
+          options: [],
           fallback: [],
           analytics: {
             enabled: false,
@@ -144,12 +165,13 @@ export default {
             action: "",
             label: "",
           },
-          x: 512,
-          y: 512,
-          redirect: [],
-        });
+        };
       }
+      this.pushBlock(block);
       this.pushHandler({ delete_block: id });
+      this.$nextTick(() => {
+        this.update_endpoints(block);
+      });
     },
     source_endpoints(block) {
       const selects = this.plumbInstance.select({ target: block.input_endpoint });
@@ -212,6 +234,9 @@ export default {
         this.$eventBus.emit("log", "revertendo remoção de conexão");
       } else if (pop.type == "backup_block") {
         this.blocks.push(pop.copy);
+        this.$nextTick(() => {
+          this.update_endpoints(pop.copy);
+        });
         this.$eventBus.emit("log", "revertendo remoção de bloco");
       } else if (pop.type == "backup_endpoint") {
         const block = this.blockById(pop.block);
@@ -375,8 +400,8 @@ export default {
     },
     update_endpoints(block) {
       const outputs = block.interface.get_output_endpoints();
+      block.output_endpoints = [];
       if (outputs) {
-        block.output_endpoints = [];
         outputs.forEach((output) => {
           block.output_endpoints.push(output);
           output.block = block;
@@ -430,13 +455,17 @@ export default {
         }
       }
       if (sum === this.blocks.length) {
-        console.log("rendering all blocks again");
-        if (this.already_rendered) {
-          this.destroy_all_connections();
+        if (!this.already_rendered) {
+          console.log("rendering all blocks again");
+          this.render_flowchart();
+          this.already_rendered = true;
+          this.updateFlowchartContent();
         }
-        this.render_flowchart();
-        this.already_rendered = true;
       }
+    },
+    reset_jsPlumb() {
+      this.destroy_all_connections();
+      this.render_flowchart();
     },
     create_overlay_arrow(connection) {
       const dom = document.createElement("div");
@@ -458,7 +487,7 @@ export default {
       return dom;
     },
     block_mousedown(evt, block) {
-      if (this.draggingBlock) {
+      if (this.draggingBlock && evt) {
         this.block_mouseup(evt, this.draggingBlock);
         return;
       }
@@ -488,8 +517,8 @@ export default {
     },
     block_mousemove(evt, block) {
       if (this.draggingBlock == block) {
-        const deltaX = (evt.x - this.lastDragX) / this.zoom;
-        const deltaY = (evt.y - this.lastDragY) / this.zoom;
+        const deltaX = (evt.x - this.lastDragX) / this.coordinates.zoom;
+        const deltaY = (evt.y - this.lastDragY) / this.coordinates.zoom;
         if (deltaX === 0 && deltaY === 0) {
           return;
         }
@@ -526,33 +555,33 @@ export default {
     },
 
     updateFlowchartContent() {
-      this.flowchatContent.style.transform = `translate(${this.translateX}px , ${this.translateY}px) scale(${this.zoom})`;
-      this.flowchat.style.backgroundPosition = `${this.translateX}px ${this.translateY}px`;
-      this.flowchat.style.backgroundSize = `${64 * this.zoom}px ${64 * this.zoom}px`;
+      this.flowchatContent.style.transform = `translate(${this.coordinates.translateX}px , ${this.coordinates.translateY}px) scale(${this.coordinates.zoom})`;
+      this.flowchat.style.backgroundPosition = `${this.coordinates.translateX}px ${this.coordinates.translateY}px`;
+      this.flowchat.style.backgroundSize = `${64 * this.coordinates.zoom}px ${64 * this.coordinates.zoom}px`;
     },
 
     flowchart_wheel(evt) {
-      const previousZoom = this.zoom;
+      const previousZoom = this.coordinates.zoom;
       if (evt.wheelDelta > 0) {
-        this.zoom += (3 - this.zoom) / 20;
+        this.coordinates.zoom += (3 - this.coordinates.zoom) / 20;
       } else {
-        this.zoom -= (this.zoom - 0.25) / 20;
+        this.coordinates.zoom -= (this.coordinates.zoom - 0.25) / 20;
       }
 
       const posX =
         (evt.x - this.flowchat.parentElement.offsetLeft) / this.flowchat.offsetWidth;
       const posY =
         (evt.y - this.flowchat.parentElement.offsetTop) / this.flowchat.offsetHeight;
-      const dX = posX * this.flowchat.offsetWidth - this.translateX;
-      const dY = posY * this.flowchat.offsetHeight - this.translateY;
+      const dX = posX * this.flowchat.offsetWidth - this.coordinates.translateX;
+      const dY = posY * this.flowchat.offsetHeight - this.coordinates.translateY;
 
-      const ratio = 1 - this.zoom / previousZoom;
+      const ratio = 1 - this.coordinates.zoom / previousZoom;
 
-      this.translateX += dX * ratio;
-      this.translateY += dY * ratio;
+      this.coordinates.translateX += dX * ratio;
+      this.coordinates.translateY += dY * ratio;
 
       this.updateFlowchartContent();
-      this.plumbInstance.setZoom(this.zoom);
+      this.plumbInstance.setZoom(this.coordinates.zoom);
     },
 
     flowchart_mousedown(evt) {
@@ -569,8 +598,8 @@ export default {
 
     move_flowchart(deltaX, deltaY) {
       if (this.dragging) {
-        this.translateX += deltaX;
-        this.translateY += deltaY;
+        this.coordinates.translateX += deltaX;
+        this.coordinates.translateY += deltaY;
         this.updateFlowchartContent();
       }
     },
@@ -616,7 +645,7 @@ export default {
   cursor: pointer;
 }
 
-.subheader-empty{
+.subheader-empty {
   text-align: center;
   height: 30px;
   line-height: 30px;
@@ -636,19 +665,22 @@ export default {
   background-size: 64px 64px;
   background-color: #6bb297;
 
+  &.dragging-block {
+    .jtk-connector {
+      z-index: 1;
+    }
+    .jtk-overlay {
+      z-index: 1;
+    }
+    .flowchart-control {
+      z-index: -1;
+    }
+  }
+
   > .flowchart-content {
     position: absolute;
     left: 0px;
     top: 0px;
-
-    &.dragging-block {
-      .jtk-connector {
-        z-index: 1;
-      }
-      .jtk-overlay {
-        z-index: 1;
-      }
-    }
 
     > .block {
       position: absolute;
@@ -660,7 +692,7 @@ export default {
       border-radius: 16px;
 
       &.selected {
-        z-index: 3;
+        z-index: 11;
       }
 
       &:hover > .content {
