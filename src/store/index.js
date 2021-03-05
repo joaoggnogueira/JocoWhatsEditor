@@ -9,7 +9,8 @@ Vue.use(Vuex);
 export default new Vuex.Store({
   state: {
     _blocks: [],
-    _coordinates: {}
+    _coordinates: {},
+    _flow: {}
   },
   mutations,
   getters,

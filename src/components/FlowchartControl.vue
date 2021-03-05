@@ -11,6 +11,10 @@
       <font-awesome-icon icon="directions" size="lg" />
       <div class="label">User Input</div>
     </div>
+    <div class="btn-control" @click="$emit('addBlock', 'redirect')">
+      <font-awesome-icon icon="external-link-square-alt" size="lg" />
+      <div class="label">Redirect</div>
+    </div>
     <div class="btn-control" @click="$emit('addBlock', 'request')">
       <font-awesome-icon icon="server" size="lg" />
       <div class="label">Call a Webhook</div>
@@ -30,6 +34,16 @@ export default {
 };
 </script>
 <style lang="scss" scoped>
+@keyframes opening {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 .flowchart-control {
   position: absolute;
   left: 0px;
@@ -42,6 +56,7 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  animation: opening 0.5s ease-out 0s 1 normal forwards;
   > .btn-control {
     padding: 8px;
     margin: 4px;
@@ -58,11 +73,11 @@ export default {
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    &:hover{
+    &:hover {
       background: #ddd;
     }
   }
-  > .label{
+  > .label {
     margin-top: 14px;
     font-size: 12px;
   }

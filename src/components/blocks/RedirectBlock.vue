@@ -9,7 +9,7 @@
     ref="dom"
   >
     <div class="header">
-      Fluxo
+      {{block.name}}
       <font-awesome-icon icon="pen" @click="edit" />
     </div>
     <div class="content">
@@ -17,15 +17,6 @@
         <div class="input field">
           <div class="dot endpoint-target" ref="input" @mousedown.stop></div>
           entrada
-        </div>
-        <div class="output field">
-          <div
-            class="dot endpoint-source"
-            ref="output"
-            data-index="0"
-            @mousedown.stop
-          ></div>
-          saída
         </div>
       </div>
     </div>
@@ -49,7 +40,7 @@ export default {
     this.block.dom = this.$refs.dom;
     this.$eventBus.emit("create_block_interface", this.block, {
       get_input_endpoints: () => this.$refs.input,
-      get_output_endpoints: () => [this.$refs.output],
+      get_output_endpoints: () => null,
     });
   },
 };

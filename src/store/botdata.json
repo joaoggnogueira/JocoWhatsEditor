@@ -1,37 +1,21 @@
 {
-    "coordinates": {
-        "translateX": 0,
-        "translateY": 0,
-        "zoom": 1
+    "flow": {
+        "default_block_welcome": "03"
     },
     "blocks": [
         {
-            "id": "01",
-            "type": "begin",
-            "x": 512,
-            "y": 64
-        },
-        {
-            "id": "02",
-            "type": "end",
-            "x": 512,
-            "y": 264
-        },
-        {
-            "id": "03",
+            "uuid": "03",
             "type": "request",
-            "x": 64,
-            "y": 64,
-            "analytics": {
-                "enabled": false,
-                "category": "",
-                "action": "",
-                "label": ""
-            }
+            "screen_position": "564 64",
+            "name": "Requisição",
+            "analytics": {},
+            "outputs": []
         },
         {
-            "id": "04",
+            "uuid": "04",
             "type": "message",
+            "name": "Messagem #01",
+            "screen_position": "64 288",
             "content": [
                 {
                     "type": "text",
@@ -55,21 +39,16 @@
                     "filename": "Guaraná_NOVA LITERATURA.pdf"
                 }
             ],
-            "analytics": {
-                "enabled": false,
-                "category": "",
-                "action": "",
-                "label": ""
-            },
-            "x": 64,
-            "y": 288,
-            "redirect": [
+            "analytics": {},
+            "outputs": [
                 "05"
             ]
         },
         {
-            "id": "05",
+            "uuid": "05",
             "type": "message",
+            "name": "Messagem #02",
+            "screen_position": "512 512",
             "content": [
                 {
                     "type": "audio",
@@ -83,20 +62,15 @@
                     "caption": "texto"
                 }
             ],
-            "analytics": {
-                "enabled": false,
-                "category": "",
-                "action": "",
-                "label": ""
-            },
-            "x": 512,
-            "y": 512,
-            "redirect": []
+            "analytics": {},
+            "outputs": []
         },
         {
-            "id": "06",
+            "uuid": "06",
             "type": "user_input",
-            "options": [
+            "name": "User Input #01",
+            "screen_position": "864 388",
+            "outputs": [
                 {
                     "name": "Opção 1",
                     "synonyms": [
@@ -115,7 +89,7 @@
                         "dois",
                         "2"
                     ],
-                    "redirect": "02"
+                    "redirect": null
                 },
                 {
                     "name": "Opção 3",
@@ -125,21 +99,14 @@
                         "tres",
                         "3"
                     ],
-                    "redirect": "03"
+                    "redirect": null
                 }
             ],
             "fallback": [
                 "Fallback A",
                 "Fallback B"
             ],
-            "analytics": {
-                "enabled": false,
-                "category": "",
-                "action": "",
-                "label": ""
-            },
-            "x": 864,
-            "y": 388
+            "analytics": {}
         }
     ]
 }

@@ -77,29 +77,11 @@ export default {
     },
   },
   mounted() {
-    this.plumbInstance = jsPlumb.getInstance({
-      PaintStyle: {
-        strokeWidth: 6,
-        stroke: "#228a1f",
-        outlineWidth: 1,
-      },
-      Endpoint: ["Dot", { radius: 0 }],
-      EndpointStyle: { fill: "#567567" },
-      Connector: ["Bezier", { curviness: 150 }],
-      ConnectionsDetachable: true,
-      ReattachConnections: true,
-    });
-
     this.flowchatContent = this.$refs.flowchatContent;
     this.flowchat = this.$refs.flowchat;
 
-    this.plumbInstance.setContainer(this.flowchatContent);
-    this.plumbInstance.registerConnectionType("example", {
-      paintStyle: { stroke: "#228a1f", strokeWidth: 2 },
-      hoverPaintStyle: { stroke: "cornflowerblue", strokeWidth: 2 },
-    });
+    this.plumbInstance = this.createJsPlumbInstance();
 
-    this.plumbInstance.bind("connection", this.on_connection);
     this.$eventBus.on("open_edit_form_block", this.open_edit_form_block);
     this.$eventBus.on("remove_endpoint", this.remove_endpoint);
     this.$eventBus.on("remove_block", this.remove_block);
@@ -117,58 +99,34 @@ export default {
       "addRedirect",
       "pushBlock",
     ]),
+    createJsPlumbInstance() {
+      const plumbInstance = jsPlumb.getInstance({
+        PaintStyle: {
+          strokeWidth: 6,
+          stroke: "#228a1f",
+          outlineWidth: 1,
+        },
+        Endpoint: ["Dot", { radius: 0 }],
+        EndpointStyle: { fill: "#567567" },
+        Connector: ["Bezier", { curviness: 150 }],
+        ConnectionsDetachable: true,
+        ReattachConnections: true,
+      });
+      plumbInstance.setContainer(this.flowchatContent);
+      plumbInstance.registerConnectionType("example", {
+        paintStyle: { stroke: "#228a1f", strokeWidth: 2 },
+        hoverPaintStyle: { stroke: "cornflowerblue", strokeWidth: 2 },
+      });
+      plumbInstance.bind("connection", this.on_connection);
+      return plumbInstance;
+    },
     addBlock(type) {
-      const id = this.$uuid.v1();
       const x = -1 * this.coordinates.translateX + 50 / this.coordinates.zoom;
       const y = -1 * this.coordinates.translateY + 50 / this.coordinates.zoom;
-
-      let block = false;
-      if (type === "request") {
-        block = {
-          id,
-          x,
-          y,
-          type: "request",
-          analytics: {
-            enabled: false,
-            category: "",
-            action: "",
-            label: "",
-          },
-        };
-      } else if (type === "message") {
-        block = {
-          id,
-          x,
-          y,
-          type: "message",
-          content: [],
-          analytics: {
-            enabled: false,
-            category: "",
-            action: "",
-            label: "",
-          },
-          redirect: [],
-        };
-      } else if (type === "user_input") {
-        block = {
-          id,
-          x,
-          y,
-          type: "user_input",
-          options: [],
-          fallback: [],
-          analytics: {
-            enabled: false,
-            category: "",
-            action: "",
-            label: "",
-          },
-        };
-      }
-      this.pushBlock(block);
-      this.pushHandler({ delete_block: id });
+      const payload = { type, x, y };
+      this.pushBlock(payload);
+      const block = payload.newblock;
+      this.pushHandler({ delete_block: block.id });
       this.$nextTick(() => {
         this.update_endpoints(block);
       });
@@ -444,8 +402,13 @@ export default {
       this.check_all_blocks_loaded();
     },
     destroy_all_connections() {
-      this.plumbInstance.deleteEveryConnection();
       this.plumbInstance.deleteEveryEndpoint();
+      this.plumbInstance.deleteEveryConnection();
+      this.plumbInstance.unmakeEverySource();
+      this.plumbInstance.unmakeEveryTarget();
+      this.plumbInstance.destroy();
+      this.plumbInstance = this.createJsPlumbInstance();
+      this.plumbInstance.setZoom(this.coordinates.zoom);
     },
     check_all_blocks_loaded() {
       let sum = 0;
@@ -489,6 +452,9 @@ export default {
     block_mousedown(evt, block) {
       if (this.draggingBlock && evt) {
         this.block_mouseup(evt, this.draggingBlock);
+        return;
+      }
+      if (block.type == "begin") {
         return;
       }
       this.pushHandler({ save_position: block });
@@ -557,7 +523,9 @@ export default {
     updateFlowchartContent() {
       this.flowchatContent.style.transform = `translate(${this.coordinates.translateX}px , ${this.coordinates.translateY}px) scale(${this.coordinates.zoom})`;
       this.flowchat.style.backgroundPosition = `${this.coordinates.translateX}px ${this.coordinates.translateY}px`;
-      this.flowchat.style.backgroundSize = `${64 * this.coordinates.zoom}px ${64 * this.coordinates.zoom}px`;
+      this.flowchat.style.backgroundSize = `${64 * this.coordinates.zoom}px ${
+        64 * this.coordinates.zoom
+      }px`;
     },
 
     flowchart_wheel(evt) {
@@ -704,6 +672,7 @@ export default {
         flex: 1;
         background: white;
         max-height: 48px;
+        min-height: 48px;
         border-bottom: 2px;
         text-align: center;
         color: rgb(129, 129, 129);

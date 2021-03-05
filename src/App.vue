@@ -56,6 +56,13 @@ export default {
   color: #2c3e50;
   margin-top: 60px;
 }
+.error-span{
+  color: red;
+  font-weight: 100;
+}
+.transformEasing{
+  transition: transform 0.5s ease-out;
+}
 .flowchartParent {
   width: 100%;
   height: 100%;
@@ -94,6 +101,12 @@ input {
   border-radius: 8px;
 }
 
+input.input-error{
+  border: 1px solid red;
+  color: red;
+  background: rgba(255, 0, 0, 0.233);
+}
+
 .row-between {
   display: flex;
   align-items: center;
@@ -115,9 +128,10 @@ input {
   background: #eeeeee;
   color: black;
   border-radius: 5px;
-  height: 30px;
+  min-height: 30px;
   line-height: 30px;
   margin: 4px;
+  font-size: 14px;
   padding: 4px;
   cursor: pointer;
   &:hover {

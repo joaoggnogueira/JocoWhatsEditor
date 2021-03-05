@@ -7,6 +7,9 @@
       <div class="btn" @click="removeBlock">Excluir bloco</div>
     </div>
     <div class="content">
+      <div class="label">Rótulo</div>
+      <input v-model="block.name"/>
+      <div class="label">Conteúdo</div>
       <div class="row-center">
         <div class="btn-add-content" v-tooltip="'Novo Texto'" @click="addText">
           <font-awesome-icon icon="comment-alt" />

@@ -9,7 +9,7 @@
     ref="dom"
   >
     <div class="header">
-      User Input
+      {{block.name}}
       <font-awesome-icon icon="pen" @click="edit" />
     </div>
     <div class="content">
@@ -19,11 +19,11 @@
           entrada
         </div>
       </div>
-      <div class="row-between" v-for="(option, index) in block.options" :key="index" :index="index">
+      <div class="row-between" v-for="(output, index) in block.outputs" :key="index" :index="index">
         <div class="flex-filler"></div>
         <div class="output field">
           <div class="dot endpoint-source" ref="outputs" :data-index="index" @mousedown.stop></div>
-          {{ option.name }}
+          {{ output.name }}
         </div>
       </div>
     </div>

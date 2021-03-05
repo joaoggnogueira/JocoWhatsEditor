@@ -27,6 +27,16 @@ export default {
 };
 </script>
 <style lang="scss">
+@keyframes opening {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 .flowchart-form {
   width: 400px;
   min-height: 400px;
@@ -36,6 +46,7 @@ export default {
   position: absolute;
   border-radius: 16px;
   box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4);
+  animation: opening 0.25s ease-out 0s 1 normal forwards;
   overflow: hidden;
   > .form-control {
     display: flex;

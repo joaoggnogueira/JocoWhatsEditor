@@ -7,6 +7,9 @@
       <div class="btn" @click="removeBlock">Excluir bloco</div>
     </div>
     <div class="content">
+      <div class="label">Rótulo</div>
+      <input v-model="block.name"/>
+      <div class="label">Analytics</div>
       <div class="form-fallback">
         <EventAnalyticsForm :analytics="block.analytics" />
       </div>

@@ -13,7 +13,7 @@ import {
   faImage, faVideo,
   faVolumeUp, faLock,
   faCommentDots, faUserCheck,
-  faDirections, faServer
+  faDirections, faServer, faExternalLinkSquareAlt, faSave
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
 import VTooltip from 'v-tooltip';
@@ -28,7 +28,7 @@ library.add(faChevronLeft,
   faImage, faVolumeUp,
   faVideo, faLock,
   faCommentDots, faUserCheck,
-  faDirections, faServer);
+  faDirections, faServer, faExternalLinkSquareAlt, faSave);
 
 Vue.config.productionTip = false
 Vue.use(UUID);

@@ -9,7 +9,7 @@
     ref="dom"
   >
     <div class="header">
-      Término
+      {{block.name}}
     </div>
     <div class="content">
       <div class="row-between">

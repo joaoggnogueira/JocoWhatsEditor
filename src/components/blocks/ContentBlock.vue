@@ -9,7 +9,7 @@
     ref="dom"
   >
     <div class="header">
-      Conteúdo
+      {{block.name}}
       <font-awesome-icon icon="pen" @click="edit" />
     </div>
     <div class="content">
