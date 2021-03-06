@@ -1,5 +1,5 @@
 <template>
-  <div class="flowchart-form">
+  <div class="flowchart-form" :class="{ show: show }" @wheel.stop @mousedown.stop @mouseup.stop @mousemove.stop>
     <component :is="'c_' + block.type" :block="block" @onClose="onClose" />
   </div>
 </template>
@@ -13,30 +13,31 @@ export default {
   props: {
     block: Object,
   },
+  data: () => ({
+    show: false,
+  }),
+  mounted() {
+    setTimeout(() => {
+      this.show = true;
+    }, 100);
+  },
   methods: {
     onClose() {
-      this.$emit("onClose");
+      this.show = false;
+      setTimeout(() => {
+        this.$emit("onClose");
+      }, 250);
     },
   },
   components: {
     c_message: ContentForm,
     c_user_input: UserInputForm,
     c_redirect: RedirectForm,
-    c_request: RequestForm
+    c_request: RequestForm,
   },
 };
 </script>
 <style lang="scss">
-@keyframes opening {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
 .flowchart-form {
   width: 400px;
   min-height: 400px;
@@ -46,8 +47,14 @@ export default {
   position: absolute;
   border-radius: 16px;
   box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4);
-  animation: opening 0.25s ease-out 0s 1 normal forwards;
+  transition: opacity 250ms ease-out, transform 250ms ease-out;
+  opacity: 0;
+  transform: scale(0.9);
   overflow: hidden;
+  &.show {
+    opacity: 1;
+    transform: scale(1);
+  }
   > .form-control {
     display: flex;
     flex-direction: column;

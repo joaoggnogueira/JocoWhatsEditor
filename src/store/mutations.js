@@ -15,7 +15,7 @@ function genEmptyBlock(type, x, y) {
     if (type === "request") {
         block = { ...block };
     } else if (type === "message") {
-        block = { ...block, content: [], redirect: [] };
+        block = { ...block, content: [], outputs: [] };
     } else if (type === "user_input") {
         block = { ...block, outputs: [], fallback: [] };
     } else if (type === "redirect") {
@@ -46,7 +46,7 @@ export default {
             outputs: [state._flow.default_block_welcome]
         });
         state._intents = data.intents;
-        state._coordinates = { translateX: 200, translateY: 100, zoom: 1 };
+        state._coordinates = { translateX: 300, translateY: 100, zoom: 1 };
     },
     readyToFlowchart() {
     },

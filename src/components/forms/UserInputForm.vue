@@ -111,8 +111,9 @@ export default {
         if (!o.temp_uuid) {
           o.temp_uuid = this.$uuid.v1();
         }
+        o.name = o.name.toLowerCase();
         o.duplicated =
-          this.block.outputs.findIndex((d) => o !== d && o.name.toLowerCase() == d.name.toLowerCase()) != -1;
+          this.block.outputs.findIndex((d) => o !== d && o == d.name.toLowerCase()) != -1;
         const allsynonyms = this.block.outputs.flatMap((d) =>
           o !== d ? d.synonyms : []
         );

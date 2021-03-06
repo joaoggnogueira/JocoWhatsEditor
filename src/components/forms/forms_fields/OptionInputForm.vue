@@ -41,7 +41,11 @@
         <input
           class="input-synonyms input-right"
           @keyup="$emit('updated')"
-          :class="{ 'input-error': !option.synonyms[index] || (duplicatedSynonyms && duplicatedSynonyms[index]) }"
+          :class="{
+            'input-error':
+              !option.synonyms[index] ||
+              (duplicatedSynonyms && duplicatedSynonyms[index]),
+          }"
           v-model="option.synonyms[index]"
         />
       </div>
@@ -65,14 +69,16 @@ export default {
   }),
   computed: {
     existsDuplicatedSyn() {
-      return (
-        this.duplicatedSynonyms && this.duplicatedSynonyms.some((d) => d)
-      );
+      return this.duplicatedSynonyms && this.duplicatedSynonyms.some((d) => d);
     },
   },
   methods: {
     remove(index) {
       this.option.synonyms.splice(index, 1);
+      if (this.option.synonyms.length === 0) {
+        this.option.synonyms.push(this.option.name);
+      }
+
       this.$emit("updated");
     },
     novaVariacao() {

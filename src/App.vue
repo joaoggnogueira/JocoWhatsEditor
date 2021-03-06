@@ -1,15 +1,13 @@
 <template>
   <div id="app">
     <div class="flowchartParent">
-      <Flowchart @open_edit_form_block="open_edit_form_block" />
+      <Flowchart />
     </div>
-    <FlowchartForm v-if="editBlock" :block="editBlock" @onClose="close" />
   </div>
 </template>
 
 <script>
 import Flowchart from "./components/Flowchart.vue";
-import FlowchartForm from "./components/FlowchartForm.vue";
 import store from "@/store";
 import { mapActions } from "vuex";
 
@@ -17,23 +15,13 @@ export default {
   name: "App",
   components: {
     Flowchart,
-    FlowchartForm,
   },
   store,
   mounted() {
     this.loadAndReadyToFlowchart();
   },
-  data: () => ({
-    editBlock: null,
-  }),
   methods: {
     ...mapActions(["loadAndReadyToFlowchart"]),
-    open_edit_form_block(block) {
-      this.editBlock = block;
-    },
-    close() {
-      this.editBlock = null;
-    },
   },
 };
 </script>
@@ -56,11 +44,11 @@ export default {
   color: #2c3e50;
   margin-top: 60px;
 }
-.error-span{
+.error-span {
   color: red;
   font-weight: 100;
 }
-.transformEasing{
+.transformEasing {
   transition: transform 0.5s ease-out;
 }
 .flowchartParent {
@@ -101,7 +89,7 @@ input {
   border-radius: 8px;
 }
 
-input.input-error{
+input.input-error {
   border: 1px solid red;
   color: red;
   background: rgba(255, 0, 0, 0.233);

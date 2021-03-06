@@ -7,11 +7,10 @@
     @mouseup="flowchart_mouseup"
     @mousemove="flowchart_mousemove"
     :style="{ backgroundImage: getBackground }"
-    :class="{ 'dragging-block': draggingBlock ? true : false }"
+    :class="{ 'dragging-block': dragging_block ? true : false }"
   >
-    <div class="flowchart-content" ref="flowchatContent">
-      <component
-        :is="'c_' + block.type"
+    <div class="flowchart-content" ref="flowchat_content">
+      <Block
         v-for="block in blocks"
         :key="block.id"
         @mousedown="block_mousedown"
@@ -20,6 +19,11 @@
         :block="block"
       />
     </div>
+    <FlowchartForm
+      v-if="edit_block"
+      :block="edit_block"
+      @onClose="close_edit_form_block"
+    />
     <FlowchartControl @addBlock="addBlock" @resetJsPlumb="reset_jsPlumb" />
     <LogFlow />
   </div>
@@ -27,15 +31,11 @@
 
 <script>
 import { jsPlumb } from "jsplumb";
-import Begin from "./blocks/BeginBlock.vue";
-import End from "./blocks/EndBlock.vue";
-import Redirect from "./blocks/RedirectBlock.vue";
-import Content from "./blocks/ContentBlock.vue";
-import UserInput from "./blocks/UserInputBlock.vue";
-import Request from "./blocks/RequestBlock.vue";
+import Block from "./Block.vue";
 import loadsh from "lodash";
 import LogFlow from "./LogFlow";
 import FlowchartControl from "./FlowchartControl.vue";
+import FlowchartForm from "./FlowchartForm.vue";
 
 import { mapGetters, mapMutations } from "vuex";
 
@@ -44,25 +44,22 @@ const BACKUPS = [];
 export default {
   name: "Flowchart",
   components: {
-    c_begin: Begin,
-    c_end: End,
-    c_redirect: Redirect,
-    c_message: Content,
-    c_user_input: UserInput,
-    c_request: Request,
+    Block,
     LogFlow,
     FlowchartControl,
+    FlowchartForm,
   },
   data: () => ({
-    dragX: 0,
-    dragY: 0,
-    lastDragX: 0,
-    lastDragY: 0,
+    drag_x: 0,
+    drag_y: 0,
+    last_drag_x: 0,
+    last_drag_y: 0,
     dragging: false,
-    draggingBlock: false,
-    flowchatContent: null,
+    dragging_block: false,
+    flowchat_content: null,
     flowchat: null,
     already_rendered: null,
+    edit_block: null,
   }),
   computed: {
     ...mapGetters([
@@ -77,7 +74,7 @@ export default {
     },
   },
   mounted() {
-    this.flowchatContent = this.$refs.flowchatContent;
+    this.flowchat_content = this.$refs.flowchat_content;
     this.flowchat = this.$refs.flowchat;
 
     this.plumbInstance = this.createJsPlumbInstance();
@@ -91,6 +88,9 @@ export default {
 
     document.addEventListener("keyup", this.keyupHandler);
   },
+  beforeDestroy() {
+    this.destroy_all_connections();
+  },
   methods: {
     ...mapMutations([
       "detachRedirect",
@@ -99,6 +99,14 @@ export default {
       "addRedirect",
       "pushBlock",
     ]),
+    open_edit_form_block(block) {
+      this.edit_block = block;
+    },
+    close_edit_form_block() {
+      setTimeout(() => {
+        this.edit_block = null;
+      }, 500);
+    },
     createJsPlumbInstance() {
       const plumbInstance = jsPlumb.getInstance({
         PaintStyle: {
@@ -112,7 +120,7 @@ export default {
         ConnectionsDetachable: true,
         ReattachConnections: true,
       });
-      plumbInstance.setContainer(this.flowchatContent);
+      plumbInstance.setContainer(this.flowchat_content);
       plumbInstance.registerConnectionType("example", {
         paintStyle: { stroke: "#228a1f", strokeWidth: 2 },
         hoverPaintStyle: { stroke: "cornflowerblue", strokeWidth: 2 },
@@ -121,11 +129,15 @@ export default {
       return plumbInstance;
     },
     addBlock(type) {
-      const x = -1 * this.coordinates.translateX + 50 / this.coordinates.zoom;
-      const y = -1 * this.coordinates.translateY + 50 / this.coordinates.zoom;
-      const payload = { type, x, y };
+      this.coordinates.zoom = 1;
+      this.updateFlowchartContent();
+      this.plumbInstance.setZoom(this.coordinates.zoom);
+
+      const center = this.get_center_pos();
+      const payload = { type, x: center.x, y: center.y };
       this.pushBlock(payload);
       const block = payload.newblock;
+      payload.newblock.new = true;
       this.pushHandler({ delete_block: block.id });
       this.$nextTick(() => {
         this.update_endpoints(block);
@@ -285,9 +297,6 @@ export default {
           type: "remove_endpoint",
         });
       }
-    },
-    open_edit_form_block(block) {
-      this.$emit("open_edit_form_block", block);
     },
     createConnection(source, target, index) {
       source = typeof source == "string" ? this.blockById(source) : source;
@@ -450,8 +459,8 @@ export default {
       return dom;
     },
     block_mousedown(evt, block) {
-      if (this.draggingBlock && evt) {
-        this.block_mouseup(evt, this.draggingBlock);
+      if (this.dragging_block && evt) {
+        this.block_mouseup(evt, this.dragging_block);
         return;
       }
       if (block.type == "begin") {
@@ -459,40 +468,40 @@ export default {
       }
       this.pushHandler({ save_position: block });
       block.dom.classList.add("selected");
-      this.dragX = parseFloat(block.dom.style.left);
-      this.dragY = parseFloat(block.dom.style.top);
-      this.lastDragX = evt.x;
-      this.lastDragY = evt.y;
-      this.draggingBlock = block;
+      this.drag_x = parseFloat(block.dom.style.left);
+      this.drag_y = parseFloat(block.dom.style.top);
+      this.last_drag_x = evt.x;
+      this.last_drag_y = evt.y;
+      this.dragging_block = block;
       evt.stopPropagation();
     },
     block_mouseup(evt, block) {
-      if (this.draggingBlock == block) {
-        this.draggingBlock.dom.classList.remove("selected");
-        this.updatePosition(this.draggingBlock, this.dragX, this.dragY, true);
+      if (this.dragging_block == block) {
+        this.dragging_block.dom.classList.remove("selected");
+        this.updatePosition(this.dragging_block, this.drag_x, this.drag_y, true);
 
         if (
-          Math.abs(this.draggingBlock.x - BACKUPS[BACKUPS.length - 1].x) <= 31 &&
-          Math.abs(this.draggingBlock.y - BACKUPS[BACKUPS.length - 1].y) <= 31
+          Math.abs(this.dragging_block.x - BACKUPS[BACKUPS.length - 1].x) <= 31 &&
+          Math.abs(this.dragging_block.y - BACKUPS[BACKUPS.length - 1].y) <= 31
         ) {
           BACKUPS.pop();
         }
-        this.draggingBlock = false;
+        this.dragging_block = false;
         this.plumbInstance.repaintEverything();
       }
     },
     block_mousemove(evt, block) {
-      if (this.draggingBlock == block) {
-        const deltaX = (evt.x - this.lastDragX) / this.coordinates.zoom;
-        const deltaY = (evt.y - this.lastDragY) / this.coordinates.zoom;
+      if (this.dragging_block == block) {
+        const deltaX = (evt.x - this.last_drag_x) / this.coordinates.zoom;
+        const deltaY = (evt.y - this.last_drag_y) / this.coordinates.zoom;
         if (deltaX === 0 && deltaY === 0) {
           return;
         }
-        this.dragX += deltaX;
-        this.dragY += deltaY;
-        this.updatePosition(this.draggingBlock, this.dragX, this.dragY, false);
-        this.lastDragX = evt.x;
-        this.lastDragY = evt.y;
+        this.drag_x += deltaX;
+        this.drag_y += deltaY;
+        this.updatePosition(this.dragging_block, this.drag_x, this.drag_y, false);
+        this.last_drag_x = evt.x;
+        this.last_drag_y = evt.y;
       }
     },
     updatePosition(block, x, y, align) {
@@ -521,11 +530,20 @@ export default {
     },
 
     updateFlowchartContent() {
-      this.flowchatContent.style.transform = `translate(${this.coordinates.translateX}px , ${this.coordinates.translateY}px) scale(${this.coordinates.zoom})`;
+      this.flowchat_content.style.transform = `translate(${this.coordinates.translateX}px , ${this.coordinates.translateY}px) scale(${this.coordinates.zoom})`;
       this.flowchat.style.backgroundPosition = `${this.coordinates.translateX}px ${this.coordinates.translateY}px`;
       this.flowchat.style.backgroundSize = `${64 * this.coordinates.zoom}px ${
         64 * this.coordinates.zoom
       }px`;
+    },
+    get_center_pos() {
+      const midX =
+        this.coordinates.translateX * (-1) +
+        this.flowchat.offsetWidth / 2.0;
+      const midY =
+        this.coordinates.translateY * (-1) +
+        this.flowchat.offsetHeight / 2.0;
+      return { x: midX, y: midY };
     },
 
     flowchart_wheel(evt) {
@@ -553,9 +571,9 @@ export default {
     },
 
     flowchart_mousedown(evt) {
-      if (!this.draggingBlock) {
-        this.lastDragX = evt.x;
-        this.lastDragY = evt.y;
+      if (!this.dragging_block) {
+        this.last_drag_x = evt.x;
+        this.last_drag_y = evt.y;
         this.dragging = true;
       }
     },
@@ -574,13 +592,13 @@ export default {
 
     flowchart_mousemove(evt) {
       if (this.dragging) {
-        const deltaX = evt.x - this.lastDragX;
-        const deltaY = evt.y - this.lastDragY;
+        const deltaX = evt.x - this.last_drag_x;
+        const deltaY = evt.y - this.last_drag_y;
         this.move_flowchart(deltaX, deltaY);
-        this.lastDragX = evt.x;
-        this.lastDragY = evt.y;
-      } else if (this.draggingBlock) {
-        // this.block_mouseup(evt, this.draggingBlock);
+        this.last_drag_x = evt.x;
+        this.last_drag_y = evt.y;
+      } else if (this.dragging_block) {
+        this.block_mousemove(evt, this.dragging_block);
       }
     },
   },
@@ -589,6 +607,17 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss">
+@keyframes newBlock {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
 @mixin noselected() {
   -webkit-touch-callout: none; /* iOS Safari */
   -webkit-user-select: none; /* Safari */
@@ -658,6 +687,9 @@ export default {
       z-index: 2;
       box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.4);
       border-radius: 16px;
+      &.newBlock {
+        animation: newBlock 0.5s ease-out 0s 1 normal forwards;
+      }
 
       &.selected {
         z-index: 11;
