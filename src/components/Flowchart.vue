@@ -230,7 +230,6 @@ export default {
       const pop = BACKUPS.pop();
       if (pop) {
         if (Array.isArray(pop)) {
-          console.log(pop);
           let i = 0;
           const loop = () => {
             this.backupHandler(pop[i]);
@@ -428,7 +427,6 @@ export default {
       }
       if (sum === this.blocks.length) {
         if (!this.already_rendered) {
-          console.log("rendering all blocks again");
           this.render_flowchart();
           this.already_rendered = true;
           this.updateFlowchartContent();
